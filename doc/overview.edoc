@@ -1,0 +1,9 @@
+@copyright 2008 Vitor Rodrigues
+@author Vitor Rodrigues <vitor@tarpipe.com>
+@version {@version}
+@title Elang API to CouchDb 
+@doc
+eCouch is an <a href="http://www.erlang.org/">Erlang</a> application that provides access to <a href="http://couchdb.org/"> CouchDb</a> servers.
+
+It uses the <a href="http://www.lshift.net/blog/2007/02/17/json-and-json-rpc-for-erlang">rfc4627</a> module from <a href="http://www.lshift.net/">LShift</a>
+The design was inspired in the article <a href="http://www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles">Building a Non-blocking TCP server using OTP principles</a> and assumes that <a href="http://www.erlang.org/doc/apps/inets/index.html">inets</a> application is running.
