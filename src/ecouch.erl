@@ -174,12 +174,7 @@ init([Module]) ->
 db_create(DatabaseName) ->
     Path = lists:append(["/", DatabaseName, "/"]),
     Reply = gen_server:call(ec_listener, {put, Path, []}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
 
 %% @spec db_delete(DatabaseName::string()) -> ok | {error, Reason::term()}
 %%
@@ -188,12 +183,8 @@ db_create(DatabaseName) ->
 db_delete(DatabaseName) ->
     Path = lists:append(["/", DatabaseName, "/"]),
     Reply = gen_server:call(ec_listener, {delete, Path, []}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
+
 %% @spec db_list() -> ok | {error, Reason::term()}
 %%
 %% @doc List databases
@@ -201,12 +192,8 @@ db_delete(DatabaseName) ->
 db_list() ->
     Path = "/_all_dbs",
     Reply = gen_server:call(ec_listener, {get, Path, []}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
+
 %% @spec db_info(DatabaseName::string()) -> {ok, Info::json()} | {error, Reason::term()}
 %%
 %% @type json() = obj() | array() | num() | str() | true | false | null
@@ -222,12 +209,7 @@ db_list() ->
 db_info(DatabaseName) ->
     Path = lists:append(["/", DatabaseName]),
     Reply = gen_server:call(ec_listener, {get, Path, []}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
 
 %% @spec doc_create(DatabaseName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
@@ -237,12 +219,8 @@ doc_create(DatabaseName, Doc) ->
     DocJson = rfc4627:encode(Doc),
     Path = lists:append(["/", DatabaseName, "/"]),
     Reply = gen_server:call(ec_listener, {post, Path, DocJson}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.    
+    handle_reply(Reply).
+
 %% @spec doc_create(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Create a named document
@@ -251,12 +229,8 @@ doc_create(DatabaseName, DocName, Doc) ->
     JsonDoc = rfc4627:encode(Doc),
     Path = lists:append(["/", DatabaseName, "/", DocName]),
     Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
+
 %% @hidden
 
 doc_bulk_create(_DatabaseName, _DocList) ->
@@ -281,12 +255,8 @@ doc_bulk_update(_DatabaseName, _DocListRev) ->
 doc_delete(DatabaseName, DocName, Rev) ->
     Path = lists:append(["/", DatabaseName, "/", DocName]),
     Reply = gen_server:call(ec_listener, {delete, Path, [{"rev", Rev}]}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
+
 %% @spec doc_get(DatabaseName::string(), DocName::string) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Get document
@@ -301,12 +271,8 @@ doc_get(DatabaseName, DocName) ->
 doc_get(DatabaseName, DocName, Options) ->
     Path = lists:append(["/", DatabaseName, "/", DocName]),
     Reply = gen_server:call(ec_listener, {get, Path, Options}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.    
+    handle_reply(Reply).
+
 %% @spec doc_get_all(DatabaseName::string()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Get all documents
@@ -321,12 +287,8 @@ doc_get_all(DatabaseName) ->
 doc_get_all(DatabaseName, Options) ->
     Path = lists:append(["/", DatabaseName, "/_all_docs"]),
     Reply = gen_server:call(ec_listener, {get, Path, Options}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
+
 %% @hidden
 
 view_create(_ViewName, _Funs) ->
@@ -367,12 +329,8 @@ view_adhoc(DatabaseName, Fun) ->
 view_adhoc(DatabaseName, Fun, Options) ->
     Path = lists:append(["/", DatabaseName, "/_temp_view"]),
     Reply = gen_server:call(ec_listener, {post, Path, Fun, "text/javascript", Options}),
-    case rfc4627:decode(Reply) of
-        {ok, Json, _Raw} ->
-            {ok, Json}; 
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    handle_reply(Reply).
+
 %% @hidden
 
 view_access(DatabaseName, ViewName) ->
@@ -386,6 +344,20 @@ view_access(_DatabaseName, _ViewName, _Options) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+handle_reply(Reply) ->
+    case Reply of
+        {error, Reason} ->
+            {error, Reason};
+        R ->
+              case rfc4627:decode(R) of
+                  {ok, Json, _Raw} ->
+                      {ok, Json};
+                  {error, Reason} ->
+                      {error, Reason}
+              end
+    end.
+
 get_app_opt(Opt, Default) ->
     case application:get_env(application:get_application(), Opt) of
         {ok, Val} -> Val;
