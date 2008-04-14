@@ -365,7 +365,7 @@ view_adhoc(DatabaseName, Fun) ->
 %% @doc Access an adhoc view
 
 view_adhoc(DatabaseName, Fun, Options) ->
-    Path = lists:append(["/", DatabaseName, "/_tmp_view"]),
+    Path = lists:append(["/", DatabaseName, "/_temp_view"]),
     Reply = gen_server:call(ec_listener, {post, Path, Fun, "text/javascript", Options}),
     case rfc4627:decode(Reply) of
         {ok, Json, _Raw} ->

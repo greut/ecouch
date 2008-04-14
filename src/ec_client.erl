@@ -109,7 +109,7 @@ handle_cast({Operation, Host, Port, From}, State) ->
             send_reply(From, Reply);
         {put, Path, Doc} ->
             Url = lists:append(["http://", Host, ":", Port, Path]),
-            Reply = http_p_request(post, Url, Doc),
+            Reply = http_p_request(put, Url, Doc),
             send_reply(From, Reply);
         {delete, Path, Options} ->
             QueryString = query_string(Options),
@@ -173,7 +173,7 @@ http_p_request(Method, Url, Body) ->
     http_p_request(Method, Url, Body, "application/json").
 http_p_request(Method, Url, Doc, ContentType) ->
     case http:request(Method, {Url, [], ContentType, Doc}, [], []) of
-        {ok, {_Status, _Header, Body}} ->
+        {ok, {_Status, _Header, Body}} ->            
             Body;
         {error, Reason} ->
             {error, Reason}
