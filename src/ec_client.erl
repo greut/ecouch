@@ -97,27 +97,33 @@ handle_cast({Operation, Host, Port, From}, State) ->
             QueryString = query_string(Options),
             Url = lists:append(["http://", Host, ":", Port, Path, QueryString]),
             Reply = http_g_request(Url),
-            send_reply(From, Reply);
+            gen_server:reply(From, Reply),
+            {stop, "Normal", State};
         {post, Path, Doc} ->
             Url = lists:append(["http://", Host, ":", Port, Path]),
             Reply = http_p_request(post, Url, Doc),
-            send_reply(From, Reply);
+            gen_server:reply(From, Reply),
+            {stop, "Normal", State};
         {post, Path, Doc, ContentType, Options} ->
             QueryString = query_string(Options),
             Url = lists:append(["http://", Host, ":", Port, Path, QueryString]),
             Reply = http_p_request(post, Url, Doc, ContentType),
-            send_reply(From, Reply);
+            gen_server:reply(From, Reply),
+            {stop, "Normal", State};
         {put, Path, Doc} ->
             Url = lists:append(["http://", Host, ":", Port, Path]),
             Reply = http_p_request(put, Url, Doc),
-            send_reply(From, Reply);
+            gen_server:reply(From, Reply),
+            {stop, "Normal", State};
         {delete, Path, Options} ->
             QueryString = query_string(Options),
             Url = lists:append(["http://", Host, ":", Port, Path, QueryString]),
             Reply = http_d_request(Url),
-            send_reply(From, Reply);
+            gen_server:reply(From, Reply),
+            {stop, "Normal", State};
         _Other ->
-            send_reply(From, {error, "Bad operation"})
+            gen_server:reply(From, {error, "Bad operation"}),
+            {stop, "Normal", State}
     end,
     {noreply, State}.
 
@@ -153,13 +159,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-send_reply(From, Reply) ->
-    case From of
-        noreply ->
-            Reply;
-        F ->
-            gen_server:reply(F, Reply)
-    end.
 
 query_string(Options) ->
     query_string(Options, "?", []).
