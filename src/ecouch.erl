@@ -18,6 +18,7 @@
 %%
 %% @copyright 2008 Vitor Rodrigues
 %% @author Vitor Rodrigues <vitor@tarpipe.com>
+%% @contributor Yoan Blanc <yoan@dosimple.ch>
 %% @version {@version}
 %%
 %% @doc
@@ -35,6 +36,7 @@
 
 -module(ecouch).
 -author('Vitor Rodrigues').
+-author('Yoan Blanc').
 
 -behaviour(application).
 
@@ -64,8 +66,8 @@
         view_get/2,
         view_adhoc/2,
         view_adhoc/3,
-        view_access/2,
-        view_access/3
+        view_access/3,
+        view_access/4
         ]).
 
 -define(MAX_RESTART,    5).
@@ -171,8 +173,11 @@ init([Module]) ->
 %%
 %% @doc Create a database
 
+db_create(DatabaseName) when is_binary(DatabaseName) ->
+    db_create(binary_to_list(DatabaseName));
+
 db_create(DatabaseName) ->
-    Path = lists:append(["/", DatabaseName, "/"]),
+    Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {put, Path, []}),
     handle_reply(Reply).
 
@@ -180,8 +185,11 @@ db_create(DatabaseName) ->
 %%
 %% @doc Delete a database
 
+db_delete(DatabaseName) when is_binary(DatabaseName) ->
+    db_delete(binary_to_list(DatabaseName));
+
 db_delete(DatabaseName) ->
-    Path = lists:append(["/", DatabaseName, "/"]),
+    Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {delete, Path, []}),
     handle_reply(Reply).
 
@@ -207,7 +215,7 @@ db_list() ->
 %% @doc Database info
 
 db_info(DatabaseName) ->
-    Path = lists:append(["/", DatabaseName]),
+    Path = lists:flatten(io_lib:format("/~s", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {get, Path, []}),
     handle_reply(Reply).
 
@@ -217,17 +225,17 @@ db_info(DatabaseName) ->
 
 doc_create(DatabaseName, Doc) ->
     DocJson = rfc4627:encode(Doc),
-    Path = lists:append(["/", DatabaseName, "/"]),
+    Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {post, Path, DocJson}),
     handle_reply(Reply).
 
 %% @spec doc_create(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Create a named document
-    
+
 doc_create(DatabaseName, DocName, Doc) ->
     JsonDoc = rfc4627:encode(Doc),
-    Path = lists:append(["/", DatabaseName, "/", DocName]),
+    Path = list:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
     Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}),
     handle_reply(Reply).
 
@@ -251,9 +259,9 @@ doc_bulk_update(_DatabaseName, _DocListRev) ->
 %% @spec doc_delete(DatabaseName::string(), DocName::string(), Rev::string()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Delete document
-    
+
 doc_delete(DatabaseName, DocName, Rev) ->
-    Path = lists:append(["/", DatabaseName, "/", DocName]),
+    Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
     Reply = gen_server:call(ec_listener, {delete, Path, [{"rev", Rev}]}),
     handle_reply(Reply).
 
@@ -269,7 +277,7 @@ doc_get(DatabaseName, DocName) ->
 %% @doc Get document
 
 doc_get(DatabaseName, DocName, Options) ->
-    Path = lists:append(["/", DatabaseName, "/", DocName]),
+    Path = lists:flatten(lists:append("/~s/~s", [DatabaseName, DocName])),
     Reply = gen_server:call(ec_listener, {get, Path, Options}),
     handle_reply(Reply).
 
@@ -285,7 +293,7 @@ doc_get_all(DatabaseName) ->
 %% @doc Get all documents
 
 doc_get_all(DatabaseName, Options) ->
-    Path = lists:append(["/", DatabaseName, "/_all_docs"]),
+    Path = lists:flatten(lists:append("/~s/_all_docs", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {get, Path, Options}),
     handle_reply(Reply).
 
@@ -327,19 +335,21 @@ view_adhoc(DatabaseName, Fun) ->
 %% @doc Access an adhoc view
 
 view_adhoc(DatabaseName, Fun, Options) ->
-    Path = lists:append(["/", DatabaseName, "/_temp_view"]),
+    Path = lists:flatten(io_lib:format("/~s/_temp_view", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {post, Path, Fun, "text/javascript", Options}),
     handle_reply(Reply).
 
 %% @hidden
 
-view_access(DatabaseName, ViewName) ->
-    view_access(DatabaseName, ViewName, []).
+view_access(DatabaseName, DesignName, ViewName) ->
+    view_access(DatabaseName, DesignName, ViewName, []).
 
 %% @hidden
 
-view_access(_DatabaseName, _ViewName, _Options) ->
-    {error, "Not implemented"}.
+view_access(DatabaseName, DesignName, ViewName, Options) ->
+    Path = lists:flatten(io_lib:format("/~s/_view/~s/~s", [DatabaseName, DesignName, ViewName])),
+    Reply = gen_server:call(ec_listener, {get, Path, Options}),
+    handle_reply(Reply).
 
 %%====================================================================
 %% Internal functions
@@ -367,3 +377,4 @@ get_app_opt(Opt, Default) ->
             error       -> Default
             end
         end.
+

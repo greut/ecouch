@@ -95,29 +95,29 @@ handle_cast({Operation, Host, Port, From}, State) ->
     case Operation of
         {get, Path, Options} ->
             QueryString = query_string(Options),
-            Url = lists:append(["http://", Host, ":", Port, Path, QueryString]),
+            Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
             Reply = http_g_request(Url),
             gen_server:reply(From, Reply),
             {stop, "Normal", State};
         {post, Path, Doc} ->
-            Url = lists:append(["http://", Host, ":", Port, Path]),
+            Url = lists:flatten(io_lib:format("http://~s:~s~s", [Host, Port, Path])),
             Reply = http_p_request(post, Url, Doc),
             gen_server:reply(From, Reply),
             {stop, "Normal", State};
         {post, Path, Doc, ContentType, Options} ->
             QueryString = query_string(Options),
-            Url = lists:append(["http://", Host, ":", Port, Path, QueryString]),
+            Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
             Reply = http_p_request(post, Url, Doc, ContentType),
             gen_server:reply(From, Reply),
             {stop, "Normal", State};
         {put, Path, Doc} ->
-            Url = lists:append(["http://", Host, ":", Port, Path]),
+            Url = lists:flatten(io_lib:format("http://~s:~s~s", [Host, Port, Path])),
             Reply = http_p_request(put, Url, Doc),
             gen_server:reply(From, Reply),
             {stop, "Normal", State};
         {delete, Path, Options} ->
             QueryString = query_string(Options),
-            Url = lists:append(["http://", Host, ":", Port, Path, QueryString]),
+            Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
             Reply = http_d_request(Url),
             gen_server:reply(From, Reply),
             {stop, "Normal", State};
@@ -163,9 +163,11 @@ code_change(_OldVsn, State, _Extra) ->
 query_string(Options) ->
     query_string(Options, "?", []).
 query_string([], _Separator, Acc) ->
-    lists:flatten(Acc);
+    lists:flatten(lists:reverse(Acc));
+query_string([{Name, Value} | T], Separator, Acc) when is_integer(Value) ->
+    query_string([{Name, integer_to_list(Value)} | T], Separator, Acc);
 query_string([{Name, Value} | T], Separator, Acc) ->
-    O = lists:append([Separator, Name, "=", Value]),
+    O = lists:flatten(io_lib:format("~s~s=~s", [Separator, Name, Value])),
     query_string(T, "&", [O | Acc]).
 
 http_p_request(Method, Url, Body) ->
