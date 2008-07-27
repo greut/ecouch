@@ -19,6 +19,7 @@ ifdef debug
 endif
 
 EBIN_DIR := ../ebin
+TEST_DIR := ../tests
 DOC_DIR  := ../doc
 EMULATOR := beam
 
@@ -33,8 +34,16 @@ EBIN_FILES = $(ERL_OBJECTS) $(APP_FILES:%.app=../ebin/%.app)
 EBIN_FILES_NO_DOCS = $(ERL_OBJECTS) $(APP_FILES:%.app=../ebin/%.app)
 MODULES = $(ERL_SOURCES:%.erl=%)
 
+TEST_ERL_SOURCES := $(wildcard test/*.erl)
+TEST_ERL_OBJECTS = $(TEST_ERL_SOURCES:%.erl=$(TEST_DIR)/%.$(EMULATOR))
+TEST_FILES = $(TEST_ERL_OBJECTS)
+
+FULL_PATH_TO_EBIN := `cd ../ebin && pwd` # For common test stuff
 ../ebin/%.app: %.app
 	cp $< $@
+
+$(TEST_DIR)/%.$(EMULATOR): %.erl
+	$(ERLC) $(ERLC_FLAGS) -o $(TEST_DIR) $<
 
 $(EBIN_DIR)/%.$(EMULATOR): %.erl
 	$(ERLC) $(ERLC_FLAGS) -o $(EBIN_DIR) $<

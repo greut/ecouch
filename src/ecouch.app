@@ -9,7 +9,7 @@
   %%
   %% mod: Specify the module name to start the application, plus args
   %%
-  {mod, {ecouch, {"localhost", "5984"}}},
+  {mod, {ecouch, {"127.0.0.1", "5984"}}},
   {env, []}
  ]
 }.

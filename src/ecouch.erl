@@ -235,7 +235,7 @@ doc_create(DatabaseName, Doc) ->
 
 doc_create(DatabaseName, DocName, Doc) ->
     JsonDoc = rfc4627:encode(Doc),
-    Path = list:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
+    Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
     Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}),
     handle_reply(Reply).
 
@@ -277,7 +277,7 @@ doc_get(DatabaseName, DocName) ->
 %% @doc Get document
 
 doc_get(DatabaseName, DocName, Options) ->
-    Path = lists:flatten(lists:append("/~s/~s", [DatabaseName, DocName])),
+    Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
     Reply = gen_server:call(ec_listener, {get, Path, Options}),
     handle_reply(Reply).
 
@@ -293,7 +293,7 @@ doc_get_all(DatabaseName) ->
 %% @doc Get all documents
 
 doc_get_all(DatabaseName, Options) ->
-    Path = lists:flatten(lists:append("/~s/_all_docs", [DatabaseName])),
+    Path = lists:flatten(io_lib:format("/~s/_all_docs", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {get, Path, Options}),
     handle_reply(Reply).
 
