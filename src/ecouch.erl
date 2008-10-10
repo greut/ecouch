@@ -369,12 +369,16 @@ handle_reply(Reply) ->
     end.
 
 get_app_opt(Opt, Default) ->
-    case application:get_env(application:get_application(), Opt) of
+    Value = case application:get_application() of
+        {ok, Application} -> application:get_env(Application, Opt);
+        _ -> undefined
+        end,
+    case Value of
         {ok, Val} -> Val;
         _ ->
             case init:get_argument(Opt) of
-            [[Val | _]] -> Val;
-            error       -> Default
+                [[Val | _]] -> Val;
+                error -> Default
             end
         end.
 
