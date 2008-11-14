@@ -239,10 +239,16 @@ doc_create(DatabaseName, DocName, Doc) ->
     Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}),
     handle_reply(Reply).
 
-%% @hidden
+%% @spec doc_bulk_create(DatabaseName::string(), DocList) -> {ok, Response::json()} | {error, Reason::term()}
+%%     DocList = [json()]
+%%
+%% @doc Batch create a set of documents.
 
-doc_bulk_create(_DatabaseName, _DocList) ->
-    {error, "Not implemented"}.
+doc_bulk_create(DatabaseName, DocList) ->
+    BulkDoc = rfc4627:encode({obj, [{"docs", DocList}]}),
+    Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, "_bulk_docs"])),
+    Reply = gen_server:call(ec_listener, {post, Path, BulkDoc}),
+    handle_reply(Reply).
     
 %% @spec doc_update(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
@@ -251,10 +257,13 @@ doc_bulk_create(_DatabaseName, _DocList) ->
 doc_update(DatabaseName, DocName, Doc) -> 
     doc_create(DatabaseName, DocName, Doc).
 
-%% @hidden
+%% @spec doc_bulk_update(DatabaseName::string(), DocListRev) -> {ok, Response::json()} | {error, Reason::term()}
+%%     DocListRev = [json()]
+%%
+%% @doc Batch update a set of documents
 
-doc_bulk_update(_DatabaseName, _DocListRev) ->
-    {error, "Not implemented"}.
+doc_bulk_update(DatabaseName, DocListRev) ->
+    doc_bulk_create(DatabaseName, DocListRev).
 
 %% @spec doc_delete(DatabaseName::string(), DocName::string(), Rev::string()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
