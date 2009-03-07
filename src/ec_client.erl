@@ -32,7 +32,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, query_string/1, query_string/2, url_encode/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -162,13 +162,53 @@ code_change(_OldVsn, State, _Extra) ->
 
 query_string(Options) ->
     query_string(Options, "?", []).
+query_string(Key, Value)->
+    query_string([{Key, Value}], "?", []).
 query_string([], _Separator, Acc) ->
     lists:flatten(lists:reverse(Acc));
 query_string([{Name, Value} | T], Separator, Acc) when is_integer(Value) ->
     query_string([{Name, integer_to_list(Value)} | T], Separator, Acc);
 query_string([{Name, Value} | T], Separator, Acc) ->
-    O = lists:flatten(io_lib:format("~s~s=~s", [Separator, Name, Value])),
+    UrlName = url_encode(lists:flatten(io_lib:format("~s", [Name]))),
+    UrlValue = url_encode(lists:flatten(io_lib:format("~s", [Value]))),
+    O = lists:flatten(io_lib:format("~s~s=~s", [Separator, UrlName, UrlValue])),
     query_string(T, "&", [O | Acc]).
+
+% http://erlyaws.svn.sourceforge.net/viewvc/erlyaws/trunk/yaws/src/yaws_api.erl
+url_encode([H|T]) ->
+    if
+        H >= $a, $z >= H ->
+            [H|url_encode(T)];
+        H >= $A, $Z >= H ->
+            [H|url_encode(T)];
+        H >= $0, $9 >= H ->
+            [H|url_encode(T)];
+        H == $_; H == $.; H == $-; H == $/; H == $: -> % FIXME: more..
+            [H|url_encode(T)];
+        H == $& ->
+            [$%, $2, $6 | url_encode(T)];
+        H == $= ->
+            [$%, $3, $D | url_encode(T)];
+        H == $? ->
+            [$%, $3, $F | url_encode(T)];
+        H == 32 -> % space
+            [$%, $2, $0 | url_encode(T)];
+        H == $' ->
+            [$%, $2, $7 | url_encode(T)];
+        H == $" ->
+            [$%, $2, $2 | url_encode(T)];
+        true ->
+            case erlang:list_to_integer([H], 16) of
+                [X, Y] ->
+                    [$%, X, Y | url_encode(T)];
+                [X] ->
+                    [$%, $0, X | url_encode(T)]
+            end
+     end;
+
+url_encode([]) ->
+    [].
+
 
 http_p_request(Method, Url, Body) ->
     http_p_request(Method, Url, Body, "application/json").
