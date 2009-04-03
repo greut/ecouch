@@ -1,18 +1,22 @@
 -module(test_helper).
 
+-import(ecouch).
 -import(http).
 -import(ct).
 -export([
     recreate_db/0,
     get/1, get/2, get/3,
     delete/1, delete/2, delete/3,
-    put/2, put/3, put/4
+    put/2, put/3, put/4,
+    server_url/0,
+    make_url/3, make_url/2, make_url/1
 ]).
+
 
 recreate_db() ->
     {ok, _} = delete("ecouch_ct_test"),
     {ok, {{_,201,_}, _, _}} =
-        http:request(put, {"http://127.0.0.1:5984/ecouch_ct_test", [], "application/javascript", []}, [],[]).
+        http:request(put, {make_url("ecouch_ct_test"), [], "application/javascript", []}, [],[]).
 
 get(DatabaseName) ->
     get(DatabaseName, "", []).
@@ -43,14 +47,32 @@ delete(DatabaseName, DocId, Parameters) ->
 
     http:request(delete, {Url, []}, [], []).
 
-make_url(DatabaseName, DocId, Parameters) ->
-    Url = case DocId of
-            "" -> "http://127.0.0.1:5984/" ++ DatabaseName;
-            _ -> "http://127.0.0.1:5984/" ++ DatabaseName ++ "/" ++ DocId
+server_url() ->
+    Credentials = case application:get_env(ecouch, user) of
+            {ok, User} -> case application:get_env(ecouch, pass) of
+                    {ok, Pass} -> User ++ ":" ++ Pass ++ "@";
+                    _ -> User ++ "@"
+                end;
+            _ -> ""
         end,
-            
-    Url ++ params_to_string(Parameters).
-    
+    {_, Host} = application:get_env(ecouch, host),
+    {_, Port} = application:get_env(ecouch, port),
+   "http://" ++ Credentials ++ Host ++ ":" ++ Port.
+
+make_url(DatabaseName) ->
+    make_url(DatabaseName, "", []).
+
+make_url(DatabaseName, DocId) ->
+    make_url(DatabaseName, DocId, []).
+
+make_url(DatabaseName, DocId, Parameters) ->
+    Host = server_url(),
+    Url = case DocId of
+            "" -> "";
+            _ -> "/" ++ DocId
+        end,
+    Host ++ "/" ++ DatabaseName ++ Url ++ params_to_string(Parameters).
+
 params_to_string(TupleList) ->
     case params_to_string(TupleList, "") of
         "" -> "";

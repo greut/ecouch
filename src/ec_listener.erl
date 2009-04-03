@@ -31,13 +31,13 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2]).
+-export([start_link/4]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {host, port}).
+-record(state, {host, port, user, pass}).
 
 
 %%--------------------------------------------------------------------
@@ -54,8 +54,10 @@
 %% @doc Starts the server
 %% @end 
 %%--------------------------------------------------------------------
-start_link(Host, Port) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Host, Port], []).
+start_link(Host, Port, User, Pass) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE,
+                          [Host, Port, User, Pass],
+                          []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -69,8 +71,8 @@ start_link(Host, Port) ->
 %% @doc Initiates the server
 %% @end 
 %%--------------------------------------------------------------------
-init([Host, Port]) ->
-    {ok, #state{host = Host, port = Port}}.
+init([Host, Port, User, Pass]) ->
+    {ok, #state{host = Host, port = Port, user = User, pass = Pass}}.
 
 %%--------------------------------------------------------------------
 %% @spec 
@@ -86,7 +88,8 @@ init([Host, Port]) ->
 handle_call(Operation, From, State) ->
     %% TODO Accept a list of servers and implement load distribution algorithms
     {ok, Pid} = ecouch:start_client(),
-    gen_server:cast(Pid, {Operation, State#state.host, State#state.port, From}),
+    gen_server:cast(Pid, {Operation, State#state.host, State#state.port, 
+                          State#state.user, State#state.pass, From}),
     {noreply, State}.
 
 %%--------------------------------------------------------------------

@@ -91,34 +91,34 @@ handle_call(_Request, _From, State) ->
 %% @doc Handling cast messages
 %% @end 
 %%--------------------------------------------------------------------
-handle_cast({Operation, Host, Port, From}, State) ->
+handle_cast({Operation, Host, Port, User, Pass, From}, State) ->
     case Operation of
         {get, Path, Options} ->
             QueryString = query_string(Options),
             Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
-            Reply = http_g_request(Url),
+            Reply = http_g_request(Url, User, Pass),
             gen_server:reply(From, Reply),
             {stop, normal, State};
         {post, Path, Doc} ->
             Url = lists:flatten(io_lib:format("http://~s:~s~s", [Host, Port, Path])),
-            Reply = http_p_request(post, Url, Doc),
+            Reply = http_p_request(post, Url, Doc, User, Pass),
             gen_server:reply(From, Reply),
             {stop, normal, State};
         {post, Path, Doc, ContentType, Options} ->
             QueryString = query_string(Options),
             Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
-            Reply = http_p_request(post, Url, Doc, ContentType),
+            Reply = http_p_request(post, Url, Doc, ContentType, User, Pass),
             gen_server:reply(From, Reply),
             {stop, normal, State};
         {put, Path, Doc} ->
             Url = lists:flatten(io_lib:format("http://~s:~s~s", [Host, Port, Path])),
-            Reply = http_p_request(put, Url, Doc),
+            Reply = http_p_request(put, Url, Doc, User, Pass),
             gen_server:reply(From, Reply),
             {stop, normal, State};
         {delete, Path, Options} ->
             QueryString = query_string(Options),
             Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
-            Reply = http_d_request(Url),
+            Reply = http_d_request(Url, User, Pass),
             gen_server:reply(From, Reply),
             {stop, normal, State};
         _Other ->
@@ -208,25 +208,33 @@ url_encode([H|T]) ->
 url_encode([]) ->
     [].
 
+make_headers(none, _) ->
+    [];
+make_headers(User, Pass) ->
+    [{"Authorization", "Basic " ++ 
+      base64:encode_to_string(User ++ ":" ++ Pass)}].
 
-http_p_request(Method, Url, Body) ->
-    http_p_request(Method, Url, Body, "application/json").
-http_p_request(Method, Url, Doc, ContentType) ->
-    case http:request(Method, {Url, [], ContentType, Doc}, [], []) of
+http_p_request(Method, Url, Body, User, Pass) ->
+    http_p_request(Method, Url, Body, "application/json", User, Pass).
+http_p_request(Method, Url, Doc, ContentType, User, Pass) ->
+    Headers = make_headers(User, Pass),
+    case http:request(Method, {Url, Headers, ContentType, Doc}, [], []) of
         {ok, {_Status, _Header, Body}} ->            
             Body;
         {error, Reason} ->
             {error, Reason}
     end.
-http_g_request(Url) ->
-    case http:request(Url) of
+http_g_request(Url, User, Pass) ->
+    Headers = make_headers(User, Pass),
+    case http:request(get, {Url, Headers}, [], []) of
         {ok, {_Status, _Header, Body}} ->
             Body;
         {error, Reason} ->
             {error, Reason}
     end.
-http_d_request(Url) ->
-    case http:request(delete, {Url, []}, [], []) of
+http_d_request(Url, User, Pass) ->
+    Headers = make_headers(User, Pass),
+    case http:request(delete, {Url, Headers}, [], []) of
         {ok, {_Status, _Header, Body}} ->
             Body;
         {error, Reason} ->
