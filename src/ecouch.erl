@@ -72,6 +72,8 @@
 
 -define(MAX_RESTART,    5).
 -define(MAX_TIME,      60).
+%% Define the timeout for gen_server calls to be something longer than 5 seconds.
+-define(DEFAULT_TIMEOUT, 30000). 
 
 %%====================================================================
 %% Application callbacks
@@ -121,7 +123,8 @@ start(_Type, {Host, Port, User, Pass}) ->
                     end
             end
     end.
-    
+
+	    
 %% @hidden
 
 start_client() ->
@@ -202,7 +205,7 @@ db_create(DatabaseName) when is_binary(DatabaseName) ->
 
 db_create(DatabaseName) ->
     Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {put, Path, []}),
+    Reply = gen_server:call(ec_listener, {put, Path, []}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec db_delete(DatabaseName::string()) -> ok | {error, Reason::term()}
@@ -214,7 +217,7 @@ db_delete(DatabaseName) when is_binary(DatabaseName) ->
 
 db_delete(DatabaseName) ->
     Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {delete, Path, []}),
+    Reply = gen_server:call(ec_listener, {delete, Path, []}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec db_list() -> ok | {error, Reason::term()}
@@ -223,7 +226,7 @@ db_delete(DatabaseName) ->
     
 db_list() ->
     Path = "/_all_dbs",
-    Reply = gen_server:call(ec_listener, {get, Path, []}),
+    Reply = gen_server:call(ec_listener, {get, Path, []}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec db_info(DatabaseName::string()) -> {ok, Info::json()} | {error, Reason::term()}
@@ -240,7 +243,7 @@ db_list() ->
 
 db_info(DatabaseName) ->
     Path = lists:flatten(io_lib:format("/~s", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {get, Path, []}),
+    Reply = gen_server:call(ec_listener, {get, Path, []}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec doc_create(DatabaseName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
@@ -250,7 +253,7 @@ db_info(DatabaseName) ->
 doc_create(DatabaseName, Doc) ->
     DocJson = rfc4627:encode(Doc),
     Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {post, Path, DocJson}),
+    Reply = gen_server:call(ec_listener, {post, Path, DocJson}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec doc_create(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
@@ -260,7 +263,7 @@ doc_create(DatabaseName, Doc) ->
 doc_create(DatabaseName, DocName, Doc) ->
     JsonDoc = rfc4627:encode(Doc),
     Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
-    Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}),
+    Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec doc_bulk_create(DatabaseName::string(), DocList) -> {ok, Response::json()} | {error, Reason::term()}
@@ -271,7 +274,7 @@ doc_create(DatabaseName, DocName, Doc) ->
 doc_bulk_create(DatabaseName, DocList) ->
     BulkDoc = rfc4627:encode({obj, [{"docs", DocList}]}),
     Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, "_bulk_docs"])),
-    Reply = gen_server:call(ec_listener, {post, Path, BulkDoc}),
+    Reply = gen_server:call(ec_listener, {post, Path, BulkDoc}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
     
 %% @spec doc_update(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
@@ -295,7 +298,7 @@ doc_bulk_update(DatabaseName, DocListRev) ->
 
 doc_delete(DatabaseName, DocName, Rev) ->
     Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
-    Reply = gen_server:call(ec_listener, {delete, Path, [{"rev", Rev}]}),
+    Reply = gen_server:call(ec_listener, {delete, Path, [{"rev", Rev}]}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec doc_get(DatabaseName::string(), DocName::string) -> {ok, Response::json()} | {error, Reason::term()}
@@ -311,7 +314,7 @@ doc_get(DatabaseName, DocName) ->
 
 doc_get(DatabaseName, DocName, Options) ->
     Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
-    Reply = gen_server:call(ec_listener, {get, Path, Options}),
+    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec doc_get_all(DatabaseName::string()) -> {ok, Response::json()} | {error, Reason::term()}
@@ -327,7 +330,7 @@ doc_get_all(DatabaseName) ->
 
 doc_get_all(DatabaseName, Options) ->
     Path = lists:flatten(io_lib:format("/~s/_all_docs", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {get, Path, Options}),
+    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @hidden
@@ -369,7 +372,7 @@ view_adhoc(DatabaseName, Fun) ->
 
 view_adhoc(DatabaseName, Fun, Options) ->
     Path = lists:flatten(io_lib:format("/~s/_temp_view", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {post, Path, Fun, "text/javascript", Options}),
+    Reply = gen_server:call(ec_listener, {post, Path, Fun, "text/javascript", Options}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @hidden
@@ -381,7 +384,7 @@ view_access(DatabaseName, DesignName, ViewName) ->
 
 view_access(DatabaseName, DesignName, ViewName, Options) ->
     Path = lists:flatten(io_lib:format("/~s/_view/~s/~s", [DatabaseName, DesignName, ViewName])),
-    Reply = gen_server:call(ec_listener, {get, Path, Options}),
+    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %%====================================================================
