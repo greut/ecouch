@@ -67,7 +67,11 @@
         view_adhoc/2,
         view_adhoc/3,
         view_access/3,
-        view_access/4
+        view_access/4,
+	url_get/2,
+	url_post/2,
+	url_put/2,
+	url_delete/2
         ]).
 
 -define(MAX_RESTART,    5).
@@ -385,6 +389,39 @@ view_access(DatabaseName, DesignName, ViewName) ->
 view_access(DatabaseName, DesignName, ViewName, Options) ->
     Path = lists:flatten(io_lib:format("/~s/_view/~s/~s", [DatabaseName, DesignName, ViewName])),
     Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
+
+
+%% @spec url_get(Path::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
+%%
+%% @doc Get URL for generic url calls, used for specialized http handlers like _fti
+
+url_get(Path, Options) ->
+    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
+
+%% @spec url_post(Path::string(), Data::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
+%%
+%% @doc POST URL for generic url POST calls, used for specialized http handlers like _fti
+
+url_post(Path, Data) ->
+    Reply = gen_server:call(ec_listener, {post, Path, Data}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
+
+%% @spec url_put(Path::string(), Data::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
+%%
+%% @doc Pur URL for generic url PUT calls, used for specialized http handlers like _fti
+
+url_put(Path, Data) ->
+    Reply = gen_server:call(ec_listener, {put, Path, Data}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
+
+%% @spec url_get(Path::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
+%%
+%% @doc DELETE URL for generic url DELETE calls, used for specialized http handlers
+
+url_delete(Path, Options) ->
+    Reply = gen_server:call(ec_listener, {delete, Path, Options}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %%====================================================================
