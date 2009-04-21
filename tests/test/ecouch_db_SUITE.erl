@@ -1,4 +1,6 @@
 -module(ecouch_db_SUITE).
+-author('jmhodges').
+
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").

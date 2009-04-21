@@ -1,4 +1,7 @@
 -module(ecouch_doc_SUITE).
+-author('jmhodges').
+-author('Yoan Blanc').
+
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").

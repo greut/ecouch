@@ -59,11 +59,11 @@
         doc_get/3,
         doc_get_all/1,
         doc_get_all/2,
-        view_create/2,
+        view_create/3,
         view_update/3,
-        view_delete/2,
-        view_get/1,
+        view_delete/3,
         view_get/2,
+        view_get/3,
         view_adhoc/2,
         view_adhoc/3,
         view_access/3,
@@ -339,28 +339,36 @@ doc_get_all(DatabaseName, Options) ->
 
 %% @hidden
 
-view_create(_ViewName, _Funs) ->
-    {error, "Not implemented"}.
+view_create(DatabaseName, DesignName, Views) ->
+    JsonDoc = rfc4627:encode({obj, [{language, "javascript"},
+                                    {views, Views}]}),
+    Path = lists:flatten(io_lib:format("/~s/_design/~s", [DatabaseName, DesignName])),
+    Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
 
 %% @hidden
 
-view_update(_ViewName, _Funs, _Rev) ->
-    {error, "Not implemented"}.
+view_update(DatabaseName, DesignName, Funs) ->
+    view_create(DatabaseName, DesignName, Funs).
 
 %% @hidden
 
-view_delete(_ViewName, _Rev) ->
-    {error, "Not implemented"}.
+view_delete(DatabaseName, DesignName, Rev) ->
+    Path = lists:flatten(io_lib:format("/~s/_design/~s", [DatabaseName, DesignName])),
+    Reply = gen_server:call(ec_listener, {delete, Path, [{"rev", Rev}]}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
 
 %% @hidden
 
-view_get(_ViewName) ->
-    {error, "Not implemented"}.
+view_get(DatabaseName, DesignName, Options) ->
+    Path = lists:flatten(io_lib:format("/~s/_design/~s", [DatabaseName, DesignName])),
+    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
 
 %% @hidden
 
-view_get(_ViewName, _Rev) ->
-    {error, "Not implemented"}.
+view_get(DatabaseName, DesignName) ->
+    view_get(DatabaseName, DesignName, []).
 
 %% @spec view_adhoc(DatabaseName::string(), Fun::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
@@ -387,7 +395,7 @@ view_access(DatabaseName, DesignName, ViewName) ->
 %% @hidden
 
 view_access(DatabaseName, DesignName, ViewName, Options) ->
-    Path = lists:flatten(io_lib:format("/~s/_view/~s/~s", [DatabaseName, DesignName, ViewName])),
+    Path = lists:flatten(io_lib:format("/~s/_design/~s/_view/~s", [DatabaseName, DesignName, ViewName])),
     Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 

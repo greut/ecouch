@@ -1,4 +1,6 @@
 -module(test_helper).
+-author('jmhodges').
+-author('Yoan Blanc').
 
 -import(ecouch).
 -import(http).
