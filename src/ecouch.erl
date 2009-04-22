@@ -55,6 +55,7 @@
         doc_update/3,
         doc_bulk_update/2,
         doc_delete/3,
+        doc_bulk_delete/2,
         doc_get/2,
         doc_get/3,
         doc_get_all/1,
@@ -303,6 +304,17 @@ doc_bulk_update(DatabaseName, DocListRev) ->
 doc_delete(DatabaseName, DocName, Rev) ->
     Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, DocName])),
     Reply = gen_server:call(ec_listener, {delete, Path, [{"rev", Rev}]}, ?DEFAULT_TIMEOUT),
+    handle_reply(Reply).
+
+%% @spec doc_bulk_delete(DatabaseName::string(), DocList) -> {ok, Response::json()} | {error, Reason::term()}
+%%     DocList = [json()]
+%%
+%% @doc Batch delete a set of documents.
+
+doc_bulk_delete(DatabaseName, DocList) ->
+    BulkDoc = rfc4627:encode({obj, [{"docs", [{obj, [{"_deleted", true} | D]} || {obj,D} <- DocList]}]}),
+    Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, "_bulk_docs"])),
+    Reply = gen_server:call(ec_listener, {post, Path, BulkDoc}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
 %% @spec doc_get(DatabaseName::string(), DocName::string) -> {ok, Response::json()} | {error, Reason::term()}
