@@ -190,12 +190,14 @@ url_encode([H|T]) ->
             [$%, $3, $D | url_encode(T)];
         H == $? ->
             [$%, $3, $F | url_encode(T)];
-        H == 32 -> % space
+        H == $\  ->
             [$%, $2, $0 | url_encode(T)];
         H == $' ->
             [$%, $2, $7 | url_encode(T)];
         H == $" ->
             [$%, $2, $2 | url_encode(T)];
+        H == $\\ ->
+            [$%, $5, $C | url_encode(T)];
         true ->
             case erlang:list_to_integer([H], 16) of
                 [X, Y] ->
