@@ -34,6 +34,7 @@ test_url_encode(_Config) ->
     ?line "%26" = ec_client:url_encode("&"),
     ?line "%3D" = ec_client:url_encode("="),
     ?line "%5C" = ec_client:url_encode("\\"),
+    ?line "%40" = ec_client:url_encode("@"),
     ok.
 
 test_query_string(_Config) ->

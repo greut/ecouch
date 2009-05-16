@@ -182,7 +182,7 @@ url_encode([H|T]) ->
             [H|url_encode(T)];
         H >= $0, $9 >= H ->
             [H|url_encode(T)];
-        H == $_; H == $.; H == $-; H == $/; H == $: -> % FIXME: more..
+        H == $_; H == $.; H == $-; H == $/; H == $: ->
             [H|url_encode(T)];
         H == $& ->
             [$%, $2, $6 | url_encode(T)];
@@ -202,6 +202,8 @@ url_encode([H|T]) ->
             [$%, $2, $8 | url_encode(T)];
         H == $) ->
             [$%, $2, $9 | url_encode(T)];
+        H == $@ ->
+            [$%, $4, $0 | url_encode(T)];
         true ->
             case erlang:list_to_integer([H], 16) of
                 [X, Y] ->
