@@ -225,7 +225,7 @@ db_delete(DatabaseName) ->
     Reply = gen_server:call(ec_listener, {delete, Path, []}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
-%% @spec db_list() -> ok | {error, Reason::term()}
+%% @spec db_list() -> {ok, [str()]} | {error, Reason::term()}
 %%
 %% @doc List databases
     
