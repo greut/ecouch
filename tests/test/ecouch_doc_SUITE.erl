@@ -33,7 +33,11 @@ init_per_testcase(_TestCase, Config) ->
 end_per_testcase(_TestCase, Config) ->
     Config.
     
-all() -> [test_doc_creation_without_id, test_doc_creation_with_id, test_doc_get, test_doc_get_all].
+all() -> [test_doc_creation_without_id,
+          test_doc_creation_with_id,
+          test_doc_get,
+          test_doc_get_all,
+          test_doc_non_existing].
 
 test_doc_creation_without_id() ->
     [{userdata, {doc, "Creating a document in an existing database."}}].
@@ -82,4 +86,11 @@ test_doc_get_all(_Config) ->
     Keys = lists:map(fun({obj, DocProps}) -> proplists:get_value("key", DocProps) end, Docs),
     ?line true = lists:member(<<"foo_has_one">>, Keys),
     ?line true = lists:member(<<"foo_has_two">>, Keys).
-    
+
+test_doc_non_existing() ->
+    [{userdata, {doc, "Get an empty document (no title)"}}].
+test_doc_non_existing(_Config) ->
+    ?line {ok, {obj, [{"error", <<"not_created">>}, {"reason", <<"invalid_name">>}]}} = ecouch:doc_create("eouch_ct_test", "", {obj, []}),
+    ?line {ok, {obj, [{"error", <<"not_deleted">>}, {"reason", <<"invalid_name">>}]}} = ecouch:doc_delete("eouch_ct_test", "", "rev"),
+    ?line {ok, {obj, [{"error", Error}, {"reason", _Reason}]}} = ecouch:doc_get("ecouch_ct_test", "dummy"), 
+    ?line {ok, {obj, [{"error", Error}, {"reason", <<"invalid_name">>}]}} = ecouch:doc_get("ecouch_ct_test", ""). 

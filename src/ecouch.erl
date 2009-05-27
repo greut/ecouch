@@ -205,9 +205,6 @@ init([Module]) ->
 %%
 %% @doc Create a database
 
-db_create(DatabaseName) when is_binary(DatabaseName) ->
-    db_create(binary_to_list(DatabaseName));
-
 db_create(DatabaseName) ->
     Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
     Reply = gen_server:call(ec_listener, {put, Path, []}, ?DEFAULT_TIMEOUT),
@@ -216,9 +213,6 @@ db_create(DatabaseName) ->
 %% @spec db_delete(DatabaseName::string()) -> ok | {error, Reason::term()}
 %%
 %% @doc Delete a database
-
-db_delete(DatabaseName) when is_binary(DatabaseName) ->
-    db_delete(binary_to_list(DatabaseName));
 
 db_delete(DatabaseName) ->
     Path = lists:flatten(io_lib:format("/~s/", [DatabaseName])),
@@ -261,6 +255,12 @@ doc_create(DatabaseName, Doc) ->
     Reply = gen_server:call(ec_listener, {post, Path, DocJson}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
 
+%% @hidden
+
+doc_create(_DatabaseName, DocName, _Options) when DocName == "" ->
+    {ok, {obj, [{"error", <<"not_created">>},
+                {"reason", <<"invalid_name">>}]}};
+
 %% @spec doc_create(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Create a named document
@@ -297,6 +297,12 @@ doc_update(DatabaseName, DocName, Doc) ->
 doc_bulk_update(DatabaseName, DocListRev) ->
     doc_bulk_create(DatabaseName, DocListRev).
 
+%% @hidden
+
+doc_delete(_DatabaseName, DocName, _Rev) when DocName == "" ->
+    {ok, {obj, [{"error", <<"not_deleted">>},
+                {"reason", <<"invalid_name">>}]}};
+
 %% @spec doc_delete(DatabaseName::string(), DocName::string(), Rev::string()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Delete document
@@ -323,6 +329,12 @@ doc_bulk_delete(DatabaseName, DocList) ->
 
 doc_get(DatabaseName, DocName) ->
     doc_get(DatabaseName, DocName, []).
+
+%% @hidden
+
+doc_get(_DatabaseName, DocName, _Options) when DocName == "" ->
+    {ok, {obj, [{"error", <<"not_found">>},
+                {"reason", <<"invalid_name">>}]}};
 
 %% @spec doc_get(DatabaseName::string(), DocName::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
