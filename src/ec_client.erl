@@ -20,9 +20,9 @@
 %%% File:      ec_client.erl
 %%% @author    Vitor Rodrigues <> []
 %%% @copyright 2008 Vitor Rodrigues
-%%% @doc  
+%%% @doc
 %%%
-%%% @end  
+%%% @end
 %%%
 %%% @since 2008-04-02 by Vitor Rodrigues
 %%%-------------------------------------------------------------------
@@ -37,7 +37,7 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
-         
+
  %%--------------------------------------------------------------------
  %% macro definitions
  %%--------------------------------------------------------------------
@@ -49,7 +49,7 @@
 %%--------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 start_link() ->
     gen_server:start_link(?MODULE, [], []).
@@ -64,13 +64,13 @@ start_link() ->
 %%                         ignore               |
 %%                         {stop, Reason}
 %% @doc Initiates the server
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 init([]) ->
     {ok, []}.
 
 %%--------------------------------------------------------------------
-%% @spec 
+%% @spec
 %% handle_call(Request, From, State) -> {reply, Reply, State} |
 %%                                      {reply, Reply, State, Timeout} |
 %%                                      {noreply, State} |
@@ -78,7 +78,7 @@ init([]) ->
 %%                                      {stop, Reason, Reply, State} |
 %%                                      {stop, Reason, State}
 %% @doc Handling call messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -89,7 +89,7 @@ handle_call(_Request, _From, State) ->
 %%                                      {noreply, State, Timeout} |
 %%                                      {stop, Reason, State}
 %% @doc Handling cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_cast({Operation, Host, Port, User, Pass, From}, State) ->
     case Operation of
@@ -101,6 +101,12 @@ handle_cast({Operation, Host, Port, User, Pass, From}, State) ->
             {stop, normal, State};
         {post, Path, Doc} ->
             Url = lists:flatten(io_lib:format("http://~s:~s~s", [Host, Port, Path])),
+            Reply = http_p_request(post, Url, Doc, User, Pass),
+            gen_server:reply(From, Reply),
+            {stop, normal, State};
+        {post, Path, Doc, Options} ->
+            QueryString = query_string(Options),
+            Url = lists:flatten(io_lib:format("http://~s:~s~s~s", [Host, Port, Path, QueryString])),
             Reply = http_p_request(post, Url, Doc, User, Pass),
             gen_server:reply(From, Reply),
             {stop, normal, State};
@@ -131,7 +137,7 @@ handle_cast({Operation, Host, Port, User, Pass, From}, State) ->
 %%                                       {noreply, State, Timeout} |
 %%                                       {stop, Reason, State}
 %% @doc Handling all non call/cast messages
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -142,7 +148,7 @@ handle_info(_Info, State) ->
 %% terminate. It should be the opposite of Module:init/1 and do any necessary
 %% cleaning up. When it returns, the gen_server terminates with Reason.
 %% The return value is ignored.
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
     ok.
@@ -150,7 +156,7 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @doc Convert process state when code is changed
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
@@ -219,7 +225,7 @@ url_encode([]) ->
 make_headers(none, _) ->
     [];
 make_headers(User, Pass) ->
-    [{"Authorization", "Basic " ++ 
+    [{"Authorization", "Basic " ++
       base64:encode_to_string(User ++ ":" ++ Pass)}].
 
 http_p_request(Method, Url, Body, User, Pass) ->
@@ -227,7 +233,7 @@ http_p_request(Method, Url, Body, User, Pass) ->
 http_p_request(Method, Url, Doc, ContentType, User, Pass) ->
     Headers = make_headers(User, Pass),
     case http:request(Method, {Url, Headers, ContentType, Doc}, [], []) of
-        {ok, {_Status, _Header, Body}} ->            
+        {ok, {_Status, _Header, Body}} ->
             Body;
         {error, Reason} ->
             {error, Reason}

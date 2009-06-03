@@ -22,10 +22,10 @@
 %% @version {@version}
 %%
 %% @doc
-%% <h1>Elang API to CouchDb</h1> 
+%% <h1>Elang API to CouchDb</h1>
 %% eCouch is an application that provides an API to a CouchDb server
 %% It uses the <a href="http://www.lshift.net/blog/2007/02/17/json-and-json-rpc-for-erlang">rfc4627</a> module from <a href="http://www.lshift.net/">LShift</a>
-%% The design was inspired in the article <a href="http://www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles">Building a Non-blocking TCP server using OTP principles</a> 
+%% The design was inspired in the article <a href="http://www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles">Building a Non-blocking TCP server using OTP principles</a>
 %% and assumes that <a href="http://www.erlang.org/doc/apps/inets/index.html">inets</a> application is running.
 %% todo:
 %% Accept a list of servers and implement load distribution algorithms <br/>
@@ -78,7 +78,7 @@
 -define(MAX_RESTART,    5).
 -define(MAX_TIME,      60).
 %% Define the timeout for gen_server calls to be something longer than 5 seconds.
--define(DEFAULT_TIMEOUT, 30000). 
+-define(DEFAULT_TIMEOUT, 30000).
 
 %%====================================================================
 %% Application callbacks
@@ -92,12 +92,12 @@
 %% @type host() = string()
 %% @type tcp_port() = int()
 %%
-%% @doc This function is called whenever an application 
+%% @doc This function is called whenever an application
 %% is started using application:start/1,2, and should start the processes
 %% of the application. If the application is structured according to the
 %% OTP design principles as a supervision tree, this means starting the
 %% top supervisor of the tree.
-%% @end 
+%% @end
 %%--------------------------------------------------------------------
 
 start(_Type, {Host, Port, User, Pass}) ->
@@ -129,7 +129,7 @@ start(_Type, {Host, Port, User, Pass}) ->
             end
     end.
 
-	    
+
 %% @hidden
 
 start_client() ->
@@ -139,15 +139,15 @@ start_client() ->
 %% @spec stop(State) -> void()
 %% @doc This function is called whenever an application
 %% has stopped. It is intended to be the opposite of Module:start/2 and
-%% should do any necessary cleaning up. The return value is ignored. 
-%% @end 
+%% should do any necessary cleaning up. The return value is ignored.
+%% @end
 %%--------------------------------------------------------------------
 
 stop(_State) ->
     ok.
 
 %% @hidden
-    
+
 init([Host, Port, User, Pass]) ->
     % making the init variable accessible through env (used by the tests)
     case application:get_application() of
@@ -222,7 +222,7 @@ db_delete(DatabaseName) ->
 %% @spec db_list() -> {ok, [str()]} | {error, Reason::term()}
 %%
 %% @doc List databases
-    
+
 db_list() ->
     Path = "/_all_dbs",
     Reply = gen_server:call(ec_listener, {get, Path, []}, ?DEFAULT_TIMEOUT),
@@ -237,7 +237,7 @@ db_list() ->
 %% @type val() = obj() | array() | num() | str() | true | false | null
 %% @type num() = int() | float()
 %% @type str() = bin()
-%% 
+%%
 %% @doc Database info
 
 db_info(DatabaseName) ->
@@ -281,12 +281,12 @@ doc_bulk_create(DatabaseName, DocList) ->
     Path = lists:flatten(io_lib:format("/~s/~s", [DatabaseName, "_bulk_docs"])),
     Reply = gen_server:call(ec_listener, {post, Path, BulkDoc}, ?DEFAULT_TIMEOUT),
     handle_reply(Reply).
-    
+
 %% @spec doc_update(DatabaseName::string(), DocName::string(), Doc::json()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Update document
 
-doc_update(DatabaseName, DocName, Doc) -> 
+doc_update(DatabaseName, DocName, Doc) ->
     doc_create(DatabaseName, DocName, Doc).
 
 %% @spec doc_bulk_update(DatabaseName::string(), DocListRev) -> {ok, Response::json()} | {error, Reason::term()}
@@ -351,20 +351,28 @@ doc_get(DatabaseName, DocName, Options) ->
 
 doc_get_all(DatabaseName) ->
     doc_get_all(DatabaseName, []).
-    
+
 %% @spec doc_get_all(DatabaseName::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
 %%
 %% @doc Get all documents
 
 doc_get_all(DatabaseName, Options) ->
     Path = lists:flatten(io_lib:format("/~s/_all_docs", [DatabaseName])),
-    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
+    Reply =
+        case proplists:lookup(keys, Options) of
+            none ->
+                gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT);
+            {keys, _Keys} = Data ->
+                JsonKeys = rfc4627:encode({obj, [Data]}),
+                NewOptions = proplists:delete(keys, Options),
+                gen_server:call(ec_listener, {post, Path, JsonKeys, NewOptions}, ?DEFAULT_TIMEOUT)
+        end,
     handle_reply(Reply).
 
 %% @hidden
 
 view_create(DatabaseName, DesignName, Views) ->
-    JsonDoc = rfc4627:encode({obj, [{language, "javascript"},
+    JsonDoc = rfc4627:encode({obj, [{language, <<"javascript">>},
                                     {views, Views}]}),
     Path = lists:flatten(io_lib:format("/~s/_design/~s", [DatabaseName, DesignName])),
     Reply = gen_server:call(ec_listener, {put, Path, JsonDoc}, ?DEFAULT_TIMEOUT),
@@ -420,9 +428,16 @@ view_access(DatabaseName, DesignName, ViewName) ->
 
 view_access(DatabaseName, DesignName, ViewName, Options) ->
     Path = lists:flatten(io_lib:format("/~s/_design/~s/_view/~s", [DatabaseName, DesignName, ViewName])),
-    Reply = gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT),
+    Reply =
+        case proplists:lookup(keys, Options) of
+            none ->
+                gen_server:call(ec_listener, {get, Path, Options}, ?DEFAULT_TIMEOUT);
+            {keys, _Keys} = Data ->
+                JsonKeys = rfc4627:encode({obj, [Data]}),
+                NewOptions = proplists:delete(keys, Options),
+                gen_server:call(ec_listener, {post, Path, JsonKeys, NewOptions}, ?DEFAULT_TIMEOUT)
+        end,
     handle_reply(Reply).
-
 
 %% @spec url_get(Path::string(), Options::options()) -> {ok, Response::json()} | {error, Reason::term()}
 %%

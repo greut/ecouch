@@ -67,16 +67,16 @@ test_doc_get() ->
     [{userdata, {doc, "Grabbing a document from an existing database"}}].
     
 test_doc_get(_Config) ->
-    Body = {obj, [{"foo", 2}]},
+    Body = {obj, [{"foo", 2}, {"bar", 3}]},
     JsonBody = rfc4627:encode(Body),
     ?line {ok, {{_, 201, _}, _, _}} = test_helper:put("ecouch_ct_test", "foo_has_two", JsonBody),
-    ?line {ok, {obj, [{"_id", <<"foo_has_two">>}, {"_rev", _}, {"foo", 2}]}} = ecouch:doc_get("ecouch_ct_test", "foo_has_two").
+    ?line {ok, {obj, [{"_id", <<"foo_has_two">>}, {"_rev", _}, {"foo", 2}, {"bar", 3}]}} = ecouch:doc_get("ecouch_ct_test", "foo_has_two").
     
 test_doc_get_all() ->
     [{userdata, {doc, "Get all of the documents from an existing database."}}].
 test_doc_get_all(_Config) ->
-    JsonBody1 = rfc4627:encode({obj, [{"foo", 1}]}),
-    JsonBody2 = rfc4627:encode({obj, [{"foo", 2}]}),
+    JsonBody1 = rfc4627:encode({obj, [{"foo", 1}, {"bar", 1}]}),
+    JsonBody2 = rfc4627:encode({obj, [{"foo", 2}, {"biz", 2}]}),
     
     test_helper:get("right_here_fool"),
     ?line {ok, {{_, 201, _}, _, _}} = test_helper:put("ecouch_ct_test", "foo_has_one", JsonBody1),
